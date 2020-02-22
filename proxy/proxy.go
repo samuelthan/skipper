@@ -1049,6 +1049,7 @@ func (p *Proxy) do(ctx *context) error {
 		// consume the body to prevent goroutine leaks
 		if ctx.request.Body != nil {
 			io.Copy(ioutil.Discard, ctx.request.Body)
+			ctx.request.Body.Close()
 		}
 		ctx.ensureDefaultResponse()
 	} else if ctx.route.BackendType == eskip.LoopBackend {
