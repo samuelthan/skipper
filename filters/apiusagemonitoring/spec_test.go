@@ -202,7 +202,7 @@ func Test_CreateFilter_NonParsableParametersShouldBeLoggedAndIgnored(t *testing.
 				Tag:           "{no-tag}",
 				ApiId:         "my_api",
 				PathTemplate:  "test",
-				Matcher:       matcher("^\\/*test\\/*$"),
+				Matcher:       matcher("^/*test/*$"),
 			},
 		})
 		assertPath(t, filter.UnknownPath, unknownPath("my_app"))
@@ -222,7 +222,8 @@ func Test_CreateFilter_FullConfigSingleApi(t *testing.T) {
 		"path_templates": [
 			"foo/orders",
 			"foo/orders/:order-id",
-			"foo/orders/:order-id/order_item/{order-item-id}",
+			"foo/orders/:order-id/order_items/{order-item-id}",
+			"/foo/order_items/{key-1}-{key-2}/",
 			"/foo/customers/",
 			"/foo/customers/{customer-id}/"
 		]
@@ -233,36 +234,43 @@ func Test_CreateFilter_FullConfigSingleApi(t *testing.T) {
 				ApplicationId: "my_app",
 				Tag:           "staging",
 				ApiId:         "my_api",
-				PathTemplate:  "foo/orders/:order-id/order_item/:order-item-id",
-				Matcher:       matcher("^\\/*foo\\/orders\\/.+\\/order_item\\/.+\\/*$"),
+				PathTemplate:  "foo/orders/{order-id}/order_items/{order-item-id}",
+				Matcher:       matcher("^/*foo/orders/.+/order_items/.+/*$"),
 			},
 			{
 				ApplicationId: "my_app",
 				Tag:           "staging",
 				ApiId:         "my_api",
-				PathTemplate:  "foo/orders/:order-id",
-				Matcher:       matcher("^\\/*foo\\/orders\\/.+\\/*$"),
+				PathTemplate:  "foo/orders/{order-id}",
+				Matcher:       matcher("^/*foo/orders/.+/*$"),
 			},
 			{
 				ApplicationId: "my_app",
 				Tag:           "staging",
 				ApiId:         "my_api",
 				PathTemplate:  "foo/orders",
-				Matcher:       matcher("^\\/*foo\\/orders\\/*$"),
+				Matcher:       matcher("^/*foo/orders/*$"),
 			},
 			{
 				ApplicationId: "my_app",
 				Tag:           "staging",
 				ApiId:         "my_api",
-				PathTemplate:  "foo/customers/:customer-id",
-				Matcher:       matcher("^\\/*foo\\/customers\\/.+\\/*$"),
+				PathTemplate:  "foo/order_items/{key-1}-{key-2}",
+				Matcher:       matcher("^/*foo/order_items/.+-.+/*$"),
+			},
+			{
+				ApplicationId: "my_app",
+				Tag:           "staging",
+				ApiId:         "my_api",
+				PathTemplate:  "foo/customers/{customer-id}",
+				Matcher:       matcher("^/*foo/customers/.+/*$"),
 			},
 			{
 				ApplicationId: "my_app",
 				Tag:           "staging",
 				ApiId:         "my_api",
 				PathTemplate:  "foo/customers",
-				Matcher:       matcher("^\\/*foo\\/customers\\/*$"),
+				Matcher:       matcher("^/*foo/customers/*$"),
 			},
 		})
 		assertPath(t, filter.UnknownPath, unknownPath("my_app"))
@@ -306,7 +314,8 @@ func Test_CreateFilter_FullConfigMultipleApis(t *testing.T) {
 			"path_templates": [
 				"foo/orders",
 				"foo/orders/:order-id",
-				"foo/orders/:order-id/order_item/{order-item-id}"
+				"foo/orders/:order-id/order_items/{order-item-id}",
+				"/foo/order_items/{order-id}-{order-item-id}"
 			]
 		}`,
 		`{
@@ -342,50 +351,57 @@ func Test_CreateFilter_FullConfigMultipleApis(t *testing.T) {
 				ApplicationId: "my_app",
 				Tag:           "{no-tag}",
 				ApiId:         "orders_api",
-				PathTemplate:  "foo/orders/:order-id/order_item/:order-item-id",
-				Matcher:       matcher("^\\/*foo\\/orders\\/.+\\/order_item\\/.+\\/*$"),
+				PathTemplate:  "foo/orders/{order-id}/order_items/{order-item-id}",
+				Matcher:       matcher("^/*foo/orders/.+/order_items/.+/*$"),
 			},
 			{
 				ApplicationId: "my_app",
 				Tag:           "{no-tag}",
 				ApiId:         "orders_api",
-				PathTemplate:  "foo/orders/:order-id",
-				Matcher:       matcher("^\\/*foo\\/orders\\/.+\\/*$"),
+				PathTemplate:  "foo/orders/{order-id}",
+				Matcher:       matcher("^/*foo/orders/.+/*$"),
 			},
 			{
 				ApplicationId: "my_app",
 				Tag:           "{no-tag}",
 				ApiId:         "orders_api",
 				PathTemplate:  "foo/orders",
-				Matcher:       matcher("^\\/*foo\\/orders\\/*$"),
+				Matcher:       matcher("^/*foo/orders/*$"),
+			},
+			{
+				ApplicationId: "my_app",
+				Tag:           "{no-tag}",
+				ApiId:         "orders_api",
+				PathTemplate:  "foo/order_items/{order-id}-{order-item-id}",
+				Matcher:       matcher("^/*foo/order_items/.+-.+/*$"),
 			},
 			{
 				ApplicationId: "my_app",
 				Tag:           "tag",
 				ApiId:         "old_tag",
 				PathTemplate:  "foo/old_tag",
-				Matcher:       matcher("^\\/*foo\\/old_tag\\/*$"),
+				Matcher:       matcher("^/*foo/old_tag/*$"),
 			},
 			{
 				ApplicationId: "my_app",
 				Tag:           "tag",
 				ApiId:         "new_tag",
 				PathTemplate:  "foo/new_tag",
-				Matcher:       matcher("^\\/*foo\\/new_tag\\/*$"),
+				Matcher:       matcher("^/*foo/new_tag/*$"),
 			},
 			{
 				ApplicationId: "my_app",
 				Tag:           "{no-tag}",
 				ApiId:         "customers_api",
-				PathTemplate:  "foo/customers/:customer-id",
-				Matcher:       matcher("^\\/*foo\\/customers\\/.+\\/*$"),
+				PathTemplate:  "foo/customers/{customer-id}",
+				Matcher:       matcher("^/*foo/customers/.+/*$"),
 			},
 			{
 				ApplicationId: "my_app",
 				Tag:           "{no-tag}",
 				ApiId:         "customers_api",
 				PathTemplate:  "foo/customers",
-				Matcher:       matcher("^\\/*foo\\/customers\\/*$"),
+				Matcher:       matcher("^/*foo/customers/*$"),
 			},
 		})
 		assertPath(t, filter.UnknownPath, unknownPath("my_app"))
@@ -417,22 +433,22 @@ func Test_CreateFilter_FullConfigWithApisWithoutPaths(t *testing.T) {
 				ApplicationId: "my_order_app",
 				Tag:           "staging",
 				ApiId:         "orders_api",
-				PathTemplate:  "foo/orders/:order-id/order_item/:order-item-id",
-				Matcher:       matcher("^\\/*foo\\/orders\\/.+\\/order_item\\/.+\\/*$"),
+				PathTemplate:  "foo/orders/{order-id}/order_item/{order-item-id}",
+				Matcher:       matcher("^/*foo/orders/.+/order_item/.+/*$"),
 			},
 			{
 				ApplicationId: "my_order_app",
 				Tag:           "staging",
 				ApiId:         "orders_api",
-				PathTemplate:  "foo/orders/:order-id",
-				Matcher:       matcher("^\\/*foo\\/orders\\/.+\\/*$"),
+				PathTemplate:  "foo/orders/{order-id}",
+				Matcher:       matcher("^/*foo/orders/.+/*$"),
 			},
 			{
 				ApplicationId: "my_order_app",
 				Tag:           "staging",
 				ApiId:         "orders_api",
 				PathTemplate:  "foo/orders",
-				Matcher:       matcher("^\\/*foo\\/orders\\/*$"),
+				Matcher:       matcher("^/*foo/orders/*$"),
 			},
 		})
 		assertPath(t, filter.UnknownPath, unknownPath("my_order_app"))
@@ -457,7 +473,7 @@ func Test_CreateFilter_DuplicatePathTemplatesAreIgnored(t *testing.T) {
 				Tag:           "{no-tag}",
 				ApiId:         "orders_api",
 				PathTemplate:  "foo",
-				Matcher:       matcher("^\\/*foo\\/*$"),
+				Matcher:       matcher("^/*foo/*$"),
 			},
 		})
 		assertPath(t, filter.UnknownPath, unknownPath("my_app"))
@@ -480,8 +496,8 @@ func Test_CreateFilter_DuplicateMatchersAreIgnored(t *testing.T) {
 				ApplicationId: "my_app",
 				Tag:           "{no-tag}",
 				ApiId:         "orders_api",
-				PathTemplate:  "foo/:a",
-				Matcher:       matcher("^\\/*foo\\/.+\\/*$"),
+				PathTemplate:  "foo/{a}",
+				Matcher:       matcher("^/*foo/.+/*$"),
 			},
 		})
 		assertPath(t, filter.UnknownPath, unknownPath("my_app"))
@@ -501,4 +517,97 @@ func Test_CreateFilter_RegExCompileFailureIgnoresPath(t *testing.T) {
 		assert.Equal(t, 1, len(filter.Paths))
 		assertPath(t, filter.UnknownPath, unknownPath("my_app"))
 	})
+}
+
+func Test_CreatePathTemplate(t *testing.T) {
+	args := map[string]struct {
+		originalPath         string
+		expectedPathTemplate string
+	}{
+		"without variables": {
+			originalPath:         "foo/orders",
+			expectedPathTemplate: "foo/orders",
+		},
+		"with single column variable": {
+			originalPath:         "foo/orders/:order-id",
+			expectedPathTemplate: "foo/orders/{order-id}",
+		},
+		"with multiple column variables": {
+			originalPath:         "foo/orders/:order-id/order_items/:order-item-id",
+			expectedPathTemplate: "foo/orders/{order-id}/order_items/{order-item-id}",
+		},
+
+		"with single curly bracket variable": {
+			originalPath:         "bar/orders/{order-id}",
+			expectedPathTemplate: "bar/orders/{order-id}",
+		},
+		"with multiple curly bracket variables": {
+			originalPath:         "bar/orders/{order-id}/order_items/{order-item-id}",
+			expectedPathTemplate: "bar/orders/{order-id}/order_items/{order-item-id}",
+		},
+		"with compound key curly bracket variables": {
+			originalPath:         "bar/order_items/{order-id}:{order-item-id}",
+			expectedPathTemplate: "bar/order_items/{order-id}:{order-item-id}",
+		},
+
+		"with additional leading and trailing slashes": {
+			originalPath:         "/bas/customers/",
+			expectedPathTemplate: "bas/customers",
+		},
+		"with additional leading and trailing slashes and variables": {
+			originalPath:         "//bas//customers///:customer-id//",
+			expectedPathTemplate: "bas/customers/{customer-id}",
+		},
+	}
+	for message, path := range args {
+		actualPathTemplate := createPathTemplate(path.originalPath)
+		assert.Equalf(t, path.expectedPathTemplate, actualPathTemplate, message)
+	}
+}
+
+func Test_CreatePathPattern(t *testing.T) {
+	args := map[string]struct {
+		originalPath        string
+		expectedPathPattern string
+	}{
+		"without variables": {
+			originalPath:        "foo/orders",
+			expectedPathPattern: "^/*foo/orders/*$",
+		},
+		"with single column variable": {
+			originalPath:        "foo/orders/:order-id",
+			expectedPathPattern: "^/*foo/orders/.+/*$",
+		},
+		"with multiple column variables": {
+			originalPath:        "foo/orders/:order-id/order_items/:order-item-id",
+			expectedPathPattern: "^/*foo/orders/.+/order_items/.+/*$",
+		},
+
+		"with single curly bracket variable": {
+			originalPath:        "bar/orders/{order-id}",
+			expectedPathPattern: "^/*bar/orders/.+/*$",
+		},
+		"with multiple curly bracket variables": {
+			originalPath:        "bar/orders/{order-id}/order_items/{order-item-id}",
+			expectedPathPattern: "^/*bar/orders/.+/order_items/.+/*$",
+		},
+		"with compound key curly bracket variables": {
+			originalPath:        "bar/order_items/{order-id}:{order-item-id}",
+			expectedPathPattern: "^/*bar/order_items/.+:.+/*$",
+		},
+
+		"with additional leading and trailing slashes": {
+			originalPath:        "/bas/customers",
+			expectedPathPattern: "^/*bas/customers/*$",
+		},
+		"with multi additional leading, intermediate, and trailing slashes": {
+			originalPath:        "//bas//customers///:customer-id//",
+			expectedPathPattern: "^/*bas/customers/.+/*$",
+		},
+	}
+
+	for message, path := range args {
+		actualPathPattern := createPathPattern(path.originalPath)
+		assert.Equalf(t, path.expectedPathPattern, actualPathPattern, message)
+	}
 }

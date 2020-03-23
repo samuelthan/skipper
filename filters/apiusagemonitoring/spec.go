@@ -17,15 +17,15 @@ const (
 	unknownPlaceholder = "{unknown}"
 	noMatchPlaceholder = "{no-match}"
 	noTagPlaceholder   = "{no-tag}"
-
-	regexUrlPathPart     = `.+`
-	regexOptionalSlashes = `\/*`
 )
 
 var (
-	log                         = logrus.WithField("filter", Name)
-	regexVarPathPartCurlyBraces = regexp.MustCompile("^{([^:{}]+)}$")
-	regexVarPathPartColon       = regexp.MustCompile("^:([^:{}]+)$")
+	log                   = logrus.WithField("filter", Name)
+	regexpMultiSlash      = regexp.MustCompile("/+")
+	regexpLeadingSlash    = regexp.MustCompile("^/?")
+	regexpTrailingSlash   = regexp.MustCompile("/?$")
+	rexexpSlashColumnVar  = regexp.MustCompile("/:([^:{}/]*)")
+	rexexpCurlyBracketVar = regexp.MustCompile("{([^{}]*)}")
 )
 
 // NewApiUsageMonitoring creates a new instance of the API Monitoring filter
@@ -79,7 +79,6 @@ func NewApiUsageMonitoring(
 		unknownPlaceholder,
 		noTagPlaceholder,
 		unknownPlaceholder,
-		noMatchPlaceholder,
 		noMatchPlaceholder,
 		unknownPathClientTracking,
 	)
@@ -168,7 +167,6 @@ func (s *apiUsageMonitoringSpec) buildUnknownPathInfo(paths []*pathInfo) *pathIn
 			*applicationId,
 			s.unknownPath.Tag,
 			s.unknownPath.ApiId,
-			s.unknownPath.PathLabel,
 			s.unknownPath.PathTemplate,
 			s.unknownPath.ClientTracking)
 	}
@@ -212,10 +210,10 @@ func (s *apiUsageMonitoringSpec) buildPathInfoListFromConfiguration(apis []*apiC
 			}
 
 			// Normalize path template and get regular expression from it
-			normalisedPathTemplate, regExStr, pathLabel := generateRegExpStringForPathTemplate(template)
+			pathTemplate, regExStr := generateRegExpStringForPathTemplate(template)
 
 			// Create new `pathInfo` with normalized PathTemplate
-			info := newPathInfo(applicationId, api.Tag, apiId, normalisedPathTemplate, pathLabel, clientTrackingInfo)
+			info := newPathInfo(applicationId, api.Tag, apiId, pathTemplate, clientTrackingInfo)
 
 			// Detect path template duplicates
 			if _, ok := existingPathTemplates[info.PathTemplate]; ok {
@@ -292,56 +290,23 @@ func (s *apiUsageMonitoringSpec) buildClientTrackingInfo(apiIndex int, api *apiC
 
 // generateRegExpStringForPathTemplate normalizes the given path template and
 // creates a regular expression from it.
-func generateRegExpStringForPathTemplate(pathTemplate string) (normalizedPathTemplate, matcher, pathLabel string) {
-	pathParts := strings.Split(pathTemplate, "/")
-	matcherPathParts := make([]string, 0, len(pathParts))
-	normalizedPathTemplateParts := make([]string, 0, len(pathParts))
-	pathLabelParts := make([]string, 0, len(pathParts))
-	for _, p := range pathParts {
-		if p == "" {
-			continue
-		}
-		placeholderName := getVarPathPartName(p)
-		if placeholderName == "" {
-			// this part is not a placeholder: match it exactly
-			matcherPathParts = append(matcherPathParts, p)
-			normalizedPathTemplateParts = append(normalizedPathTemplateParts, p)
-			pathLabelParts = append(pathLabelParts, p)
-
-		} else {
-			// this part is a placeholder: match a wildcard for it
-			matcherPathParts = append(matcherPathParts, regexUrlPathPart)
-			normalizedPathTemplateParts = append(normalizedPathTemplateParts, ":"+placeholderName)
-			pathLabelParts = append(pathLabelParts, "{"+placeholderName+"}")
-		}
-	}
-	rawRegEx := &strings.Builder{}
-	rawRegEx.WriteString("^")
-	rawRegEx.WriteString(regexOptionalSlashes)
-	rawRegEx.WriteString(strings.Join(matcherPathParts, `\/`))
-	rawRegEx.WriteString(regexOptionalSlashes)
-	rawRegEx.WriteString("$")
-
-	matcher = rawRegEx.String()
-	normalizedPathTemplate = strings.Join(normalizedPathTemplateParts, "/")
-	pathLabel = strings.Join(pathLabelParts, "/")
-
-	return
+func generateRegExpStringForPathTemplate(path string) (string, string) {
+	return createPathTemplate(path), createPathPattern(path)
 }
 
-// getVarPathPartName detects if a path template part represents a variadic placeholder.
-// Returns "" when it is not or its name when it is.
-func getVarPathPartName(pathTemplatePart string) string {
-	// check if it is `:id`
-	matches := regexVarPathPartColon.FindStringSubmatch(pathTemplatePart)
-	if len(matches) == 2 {
-		return matches[1]
-	}
-	// check if it is `{id}`
-	matches = regexVarPathPartCurlyBraces.FindStringSubmatch(pathTemplatePart)
-	if len(matches) == 2 {
-		return matches[1]
-	}
-	// it is not a placeholder
-	return ""
+func createPathTemplate(path string) string {
+	path = regexpMultiSlash.ReplaceAllString(path, "/")
+	path = regexpLeadingSlash.ReplaceAllString(path, "")
+	path = regexpTrailingSlash.ReplaceAllString(path, "")
+	path = rexexpSlashColumnVar.ReplaceAllString(path, "/{$1}")
+	return path
+}
+
+func createPathPattern(path string) string {
+	path = regexpMultiSlash.ReplaceAllString(path, "/")
+	path = regexpLeadingSlash.ReplaceAllString(path, "^/*")
+	path = regexpTrailingSlash.ReplaceAllString(path, "/*$")
+	path = rexexpSlashColumnVar.ReplaceAllString(path, "/.+")
+	path = rexexpCurlyBracketVar.ReplaceAllString(path, ".+")
+	return path
 }
